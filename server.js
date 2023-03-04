@@ -1,35 +1,93 @@
-@ServerEndpoint("/robin")
-public class ChatEndPoint {
+private async Task WebSocketContext(AspNetWebSocketContext context)
+        {
+            try
+            {
+                WebSocket socket = context.WebSocket;
 
-    private static Set<ChatEndPoint> webSocketSet = new HashSet<>();
+                //获取连接信息
+                string user_name = TDCMS.Common.TD_Request.GetQueryStringValue("user_name", "");
 
-    private Session session;
+                //第一次open时，添加到连接池中
+                if (_userPool.Find(c => c.User_name== user_name) == null)
+                {
+                    _userPool.Add(new UserPool() {  User_name = user_name , Socket = socket });
+                }
+                else
+                {
+                    UserPool p = _userPool.Find(c => c.User_name == user_name);
+                    if (socket != p.Socket)//当前对象不一致，更新
+                    {
+                        p.Socket = socket;
+                    }
+                }
 
-    @OnMessage
-    public void onMessage(String message, Session session) throws IOException {
-        System.out.println("接收的消息是：" + message);
-        System.out.println(session);
-        //将消息发送给其他的用户
-        for (Chat chat : webSocketSet) {
-            if(chat != this) {
-                chat.session.getBasicRemote().sendText(message);
+                UserPool sourcePool= _userPool.Find(c => c.User_name == user_name);//获取到发送者连接池
+
+                #region 对所有连接池中广播 我上线了
+                foreach (var item in _userPool)
+                {
+                    MessageModel model = new MessageModel()
+                    {
+                        Aim = item.User_name,
+                        Contents = user_name + "上线了",
+                        Source = sourcePool.User_name,
+                        Status = 1
+                    };
+                    await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(model))), WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+                #endregion
+
+                bool isNext = true;
+                while (isNext)
+                {
+                    if (socket.State == WebSocketState.Open)
+                    {
+                        ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[2048]);
+                        WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+
+                        #region 关闭Socket处理，删除连接池
+                        if (socket.State != WebSocketState.Open)//连接关闭
+                        {
+                            if (_userPool.Find(c => c.User_name == user_name) != null)
+                                _userPool.Remove(_userPool.Find(c => c.User_name == user_name));//删除连接池
+                            //广播当前在线的用户 我下线了
+                            foreach (var item in _userPool)
+                            {
+                                MessageModel offline = new MessageModel()
+                                {
+                                    Aim = item.User_name,
+                                    Contents = user_name + "下线了",
+                                    Source = sourcePool.User_name,
+                                    Status = 1
+                                };
+                                await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(offline))), WebSocketMessageType.Text, true, CancellationToken.None);
+                            }
+                            break;
+                        }
+
+                        #endregion
+
+                        #region 如果连接没有关闭，处理发送过来的消息
+
+                        MessageModel model=new MessageModel();
+                        int messageCount = result.Count;
+                        string messageStr= Encoding.UTF8.GetString(buffer.Array, 0, messageCount);
+                        model = JsonHelper.JsonToObject<MessageModel>(messageStr);//这个是解析好的 消息
+
+                        //发送消息到每个客户端
+                        foreach (var item in _userPool)
+                        {
+                            await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(model))), WebSocketMessageType.Text, true, CancellationToken.None);
+                        }
+
+                        #endregion
+                    }
+                }
+
+            }
+            catch(Exception ex)
+            {
+                throw ex;
             }
         }
-    }
-
-    @OnOpen
-    public void onOpen(Session session) {
-        this.session = session;
-        webSocketSet.add(this);
-    }
-
-    @OnClose
-    public void onClose(Session seesion) {
-        System.out.println("连接关闭了。。。");
-    }
-
-    @OnError
-    public void onError(Session session,Throwable error) {
-        System.out.println("出错了。。。。" + error.getMessage());
-    }
-}
+ 
