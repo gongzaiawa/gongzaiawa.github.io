@@ -1,0 +1,4 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><title>Document</title><style>/* div {height: 200px;width: 200px;border: 1px solid black;} */</style>
+</head><body><input type="text" placeholder="输入信息"><button>发送</button><div></div><script>let div = document.querySelector('div');let input = document.querySelector('input');let button = document.querySelector('button');var socket = new WebSocket('ws://localhost:3000')// 连接触发socket.addEventListener('open', function () {div.innerHTML = '连接聊天室成功了'})// 发送消息button.addEventListener('click', function() {var value = input.valueinput.value = ''socket.send(value)})// 接收信息socket.addEventListener('message', function(e) {var dv = document.createElement('div')dv.innerHTML = e.datadiv.appendChild(dv)})</script>
+</body></html>
