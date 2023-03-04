@@ -7,5 +7,5 @@ const serve = ws.createServer(conn => {console.log('新的连接');count++conn.u
 })
 // 广播信息给所有的用户
 function broadcast(msg) {serve.connections.forEach(item => {item.send(msg)})
-}serve.listen(3000, () => {console.log('监听端口3000')
+}serve.listen(0, () => {console.log('监听端口0')
 })
