@@ -1,93 +1,52 @@
-private async Task WebSocketContext(AspNetWebSocketContext context)
-        {
-            try
-            {
-                WebSocket socket = context.WebSocket;
+var WebSocketServer = require('ws').Server,
+    wss = new WebSocketServer({
+        port: process.env.WSPORT || 3001
+    });
 
-                //获取连接信息
-                string user_name = TDCMS.Common.TD_Request.GetQueryStringValue("user_name", "");
+wss.broadcast = function(data) {
+    for (var i in this.clients) this.clients[i].send(JSON.stringify(data));
+};
 
-                //第一次open时，添加到连接池中
-                if (_userPool.Find(c => c.User_name== user_name) == null)
-                {
-                    _userPool.Add(new UserPool() {  User_name = user_name , Socket = socket });
-                }
-                else
-                {
-                    UserPool p = _userPool.Find(c => c.User_name == user_name);
-                    if (socket != p.Socket)//当前对象不一致，更新
-                    {
-                        p.Socket = socket;
-                    }
-                }
-
-                UserPool sourcePool= _userPool.Find(c => c.User_name == user_name);//获取到发送者连接池
-
-                #region 对所有连接池中广播 我上线了
-                foreach (var item in _userPool)
-                {
-                    MessageModel model = new MessageModel()
-                    {
-                        Aim = item.User_name,
-                        Contents = user_name + "上线了",
-                        Source = sourcePool.User_name,
-                        Status = 1
-                    };
-                    await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(model))), WebSocketMessageType.Text, true, CancellationToken.None);
-                }
-                #endregion
-
-                bool isNext = true;
-                while (isNext)
-                {
-                    if (socket.State == WebSocketState.Open)
-                    {
-                        ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[2048]);
-                        WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, CancellationToken.None);
-
-                        #region 关闭Socket处理，删除连接池
-                        if (socket.State != WebSocketState.Open)//连接关闭
-                        {
-                            if (_userPool.Find(c => c.User_name == user_name) != null)
-                                _userPool.Remove(_userPool.Find(c => c.User_name == user_name));//删除连接池
-                            //广播当前在线的用户 我下线了
-                            foreach (var item in _userPool)
-                            {
-                                MessageModel offline = new MessageModel()
-                                {
-                                    Aim = item.User_name,
-                                    Contents = user_name + "下线了",
-                                    Source = sourcePool.User_name,
-                                    Status = 1
-                                };
-                                await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(offline))), WebSocketMessageType.Text, true, CancellationToken.None);
-                            }
-                            break;
-                        }
-
-                        #endregion
-
-                        #region 如果连接没有关闭，处理发送过来的消息
-
-                        MessageModel model=new MessageModel();
-                        int messageCount = result.Count;
-                        string messageStr= Encoding.UTF8.GetString(buffer.Array, 0, messageCount);
-                        model = JsonHelper.JsonToObject<MessageModel>(messageStr);//这个是解析好的 消息
-
-                        //发送消息到每个客户端
-                        foreach (var item in _userPool)
-                        {
-                            await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(model))), WebSocketMessageType.Text, true, CancellationToken.None);
-                        }
-
-                        #endregion
-                    }
-                }
-
-            }
-            catch(Exception ex)
-            {
-                throw ex;
-            }
+wss.on('connection', function(ws) {
+    ws.on('message', function(data) {
+        data = JSON.parse(data);
+        if (data.type === "message") {
+            wss.broadcast({
+                nick: ws.nick,
+                uid: ws.uid,
+                time: moment(data.time).format("HH:mm:ss"),
+                message: data.message,
+                type: "message"
+            });
+        } else if (data.type === "nickname") {
+            wss.broadcast({
+                oldnick: ws.nick,
+                nick: data.nick,
+                uid: ws.uid,
+                type: "nickname"
+            });
+            ws.nick = data.nick;
         }
- 
+    });
+    ws.on('close', function() {
+        wss.broadcast({
+            nick: ws.nick,
+            uid: ws.uid,
+            type: "exit"
+        });
+    });
+    ws.uid = uuid.v4();
+    ws.nick = "游客";
+    for (var i in this.clients) {
+        ws.send(JSON.stringify({
+            nick: this.clients[i].nick,
+            uid: this.clients[i].uid,
+            type: "join"
+        }));
+    }
+    wss.broadcast({
+        nick: ws.nick,
+        uid: ws.uid,
+        type: "join"
+    });
+});
