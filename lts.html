@@ -1,17 +1,189 @@
 <!doctype html>
 <html lang="en"><head><meta charset="UTF-8">
   <title> 聊天室awa </title>
-  <style> div {height: 200px;width: 200px;border: 1px solid black;} </style>
-</head>
-  <body>
-    <input type="text" placeholder="输入信息">
-    <button>发送</button>
-    <div>
-    </div>
-    <script>let div = document.querySelector('div');let input = document.querySelector('input');let button = document.querySelector('button');var ws = new WebSocket(gongzaiawa.github.io/server.js);// 连接触发
-      socket.addEventListener('open', function () {div.innerHTML = '连接聊天室成功了'})// 发送消息
-      button.addEventListener('click', function() {var value = input.valueinput.value = ''socket.send(value)})// 接收信息
-      socket.addEventListener('message', function(e) {var dv = document.createElement('div')dv.innerHTML = e.datadiv.appendChild(dv)})
+  private async Task WebSocketContext(AspNetWebSocketContext context)
+        {
+            try
+            {
+                WebSocket socket = context.WebSocket;
+
+                //获取连接信息
+                string user_name = TDCMS.Common.TD_Request.GetQueryStringValue("user_name", "");
+
+                //第一次open时，添加到连接池中
+                if (_userPool.Find(c => c.User_name== user_name) == null)
+                {
+                    _userPool.Add(new UserPool() {  User_name = user_name , Socket = socket });
+                }
+                else
+                {
+                    UserPool p = _userPool.Find(c => c.User_name == user_name);
+                    if (socket != p.Socket)//当前对象不一致，更新
+                    {
+                        p.Socket = socket;
+                    }
+                }
+
+                UserPool sourcePool= _userPool.Find(c => c.User_name == user_name);//获取到发送者连接池
+
+                #region 对所有连接池中广播 我上线了
+                foreach (var item in _userPool)
+                {
+                    MessageModel model = new MessageModel()
+                    {
+                        Aim = item.User_name,
+                        Contents = user_name + "上线了",
+                        Source = sourcePool.User_name,
+                        Status = 1
+                    };
+                    await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(model))), WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+                #endregion
+
+                bool isNext = true;
+                while (isNext)
+                {
+                    if (socket.State == WebSocketState.Open)
+                    {
+                        ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[2048]);
+                        WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+
+                        #region 关闭Socket处理，删除连接池
+                        if (socket.State != WebSocketState.Open)//连接关闭
+                        {
+                            if (_userPool.Find(c => c.User_name == user_name) != null)
+                                _userPool.Remove(_userPool.Find(c => c.User_name == user_name));//删除连接池
+                            //广播当前在线的用户 我下线了
+                            foreach (var item in _userPool)
+                            {
+                                MessageModel offline = new MessageModel()
+                                {
+                                    Aim = item.User_name,
+                                    Contents = user_name + "下线了",
+                                    Source = sourcePool.User_name,
+                                    Status = 1
+                                };
+                                await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(offline))), WebSocketMessageType.Text, true, CancellationToken.None);
+                            }
+                            break;
+                        }
+
+                        #endregion
+
+                        #region 如果连接没有关闭，处理发送过来的消息
+
+                        MessageModel model=new MessageModel();
+                        int messageCount = result.Count;
+                        string messageStr= Encoding.UTF8.GetString(buffer.Array, 0, messageCount);
+                        model = JsonHelper.JsonToObject<MessageModel>(messageStr);//这个是解析好的 消息
+
+                        //发送消息到每个客户端
+                        foreach (var item in _userPool)
+                        {
+                            await item.Socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(JsonHelper.ObjectToJson(model))), WebSocketMessageType.Text, true, CancellationToken.None);
+                        }
+
+                        #endregion
+                    }
+                }
+
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+            }
+        }
+  <script>
+        var im;//WebSocket对象
+        function initIm() {
+            var user=$('#txtUserName').val();
+            im = new MyIm(window.location.hostname, window.location.port, user);
+            $('.online').show();
+            $('.offline').hide();
+            im.Init();
+        }
+
+        //创建一个对象 里面有3个方法，分别为Init：初始化Socket连接、Send：发送消息、Colse：关闭连接
+        var MyIm = function (path, prot, user_name) {
+            this.requestPath = 'ws://' + path + ':' + prot + '/tools/Handler.ashx';
+            this.user_name = user_name;
+            this.param = '?user_name=' + this.user_name;
+            this.socekt;
+
+        }
+        MyIm.prototype = {
+            Init: function () {
+                this.socekt = new WebSocket(this.requestPath + this.param);
+                this.socekt.onopen = function () {
+                    addSysMessage('连接成功','')
+                };//连接成功
+                this.socekt.onmessage = function (result) {
+                    //这里返回的消息为json格式，里面的data为服务器返回的内容
+                    var json = eval('(' + result.data + ')');
+                    if (Number(json.Status) == 1) {
+                        addSysMessage(json.Contents,json.Time)
+                    } else {
+                        addMessage(json);
+                    }
+                };//接收到消息的时候
+                this.socekt.onclose = function (result) {
+                    addSysMessage('我的连接关闭了','')
+                }//连接关闭的时候
+                this.socekt.onerror = function (result) {
+                    addSysMessage('网络发生了错误', '');//当这一步被执行时，close会被自动执行，所以无需主动去执行关闭方法
+                }//当连接发生错误的时候
+            },
+            Send: function (msg) {
+                //这里可以直接发送消息给服务器，但是为了让服务器好区分我的消息是属于通知还是普通消息还是其他，所以做成了json
+                //后台获取到json，解析后针对不同的消息类型进行处理
+                var json = '{"Status":0,"Contents":"'+msg+'","Source":"'+this.user_name+'","Aim":""}';
+                this.socekt.send(json);
+            },
+            Close: function () {
+                if (this.socekt != null) {
+                    this.socekt.close();
+                    return;
+                }
+            }
+        }
+        //把通知消息载入到通知列表
+        function addSysMessage(msg, time) {
+            if (time.length <= 0) {
+                time = new Date();
+            }
+            $('.messageBox').append('<li><p class="time">' + time + '</p><p class=\"message\">' + msg + '</p></li>');
+        }
+        //把聊天消息载入到聊天框
+        function addMessage(json) {
+            $('.mainBox').append('<li><p class="time">' + json.Time + '</p><p class=\"message\"><span>'+json.Source+'说：</span>' + json.Contents + '</p></li>');
+        }
+        //发送消息
+        function sendMsg() {
+            var contents = $('#txtContents').val();
+            im.Send(contents);
+        }
+        //关闭连接
+        function offLine() {
+            im.Close();
+
+            $('.online').hide();
+            $('.offline').show();
+        }
     </script>
-</body>
+  <div class="mainIm">
+        <div>
+            <ul class="mainBox">
+            </ul>
+            <ul class="messageBox">
+            </ul>
+        </div>
+        <div class="online" style="display:none;">
+            <input type="text" id="txtContents" placeholder="输入要发送的内容" />
+            <input type="button" value="发送" onclick="sendMsg()" /><input type="button" value="断开连接" onclick="offLine()" />
+        </div>
+        <div class="offline">
+            <input type="text" id="txtUserName" placeholder="请输入一个用户名" />
+            <input type="button" value="连接" onclick="initIm()" />
+        </div>
+    </div>
 </html>
