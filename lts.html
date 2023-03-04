@@ -8,7 +8,7 @@
     <button>发送</button>
     <div>
     </div>
-    <script>let div = document.querySelector('div');let input = document.querySelector('input');let button = document.querySelector('button');var socket = new WebSocket('wss://gongzaiawa.github.io/server.js')// 连接触发
+    <script>let div = document.querySelector('div');let input = document.querySelector('input');let button = document.querySelector('button');var socket = new WebSocket('wss://gongzaiawa.github.io/server.js:3000')// 连接触发
       socket.addEventListener('open', function () {div.innerHTML = '连接聊天室成功了'})// 发送消息
       button.addEventListener('click', function() {var value = input.valueinput.value = ''socket.send(value)})// 接收信息
       socket.addEventListener('message', function(e) {var dv = document.createElement('div')dv.innerHTML = e.datadiv.appendChild(dv)})
