@@ -1,27 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>API调用示例</title>
+	<title>JSON to HTML</title>
 </head>
 <body>
-	<h1>API调用示例</h1>
-	<form>
-		<label for="api-url">API URL:</label>
-		<input type="text id="https://apiilibili.com/x/web-interface/index/top/rcmd?version=1&ps=5" />
-		<button type="button" onclick="getData()">获取数据</button>
-	</form>
-	<div id="response"></div>
+	<h1>Bilibili动态</h1>
+	<table id="dynamic-table">
+		<thead>
+			<tr>
+				<th>发布时间</th>
+				<th>动态内容</th>
+			</tr>
+		</thead>
+		<tbody></tbody>
+	</table>
 	<script>
-		function getData() {
-			const apiUrl = document.getElementById("api-url").value;
-			fetch(apiUrl)
-				.then(response => response.json())
-				.then(data => {
-					const responseDiv = document.getElementById("response");
-					responseDiv.innerHTML = JSON.stringify(data);
-				})
-				.catch(error => console.error(error));
-		}
+		const apiUrl = "https://api.bilibili.com/x/web-interface/dynamic/region?&jsonp=jsonp&ps=10&rid=1";
+
+		fetch(apiUrl)
+			.then => response.json())
+			.then(data => {
+				const dynamicTable = document.getElementById("dynamic-table");
+				const dynamicTableBody = dynamicTable.getElementsByTagName("tbody")[0];
+
+				data.data.archives.forEach(archive => {
+					const = dynamicTableBody.insertRow(-1);
+					const cell1 = row.insertCell(0);
+					const cell2 = row.insertCell(1);
+	cell1.innerHTML = new Date(archive.pubdate * 1000).toLocaleString();
+					cell2.innerHTML = archive.title;
+				});
+			})
+			.catch(error => console.error(error));
 	</script>
 </body>
 </html>
