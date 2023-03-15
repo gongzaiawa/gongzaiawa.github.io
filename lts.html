@@ -12,7 +12,7 @@
       const dynamicList = document.getElementById("dynamic-list");
 
       // 发送GET请求获取JSON数据
-      fetch("https://api.bilibili.com/x/web-interface/dynamic/region?&jsonp=jsonp&ps=10&rid=1")
+      fetch("https://cors-anywhere.herokuapp.com/https://api.bilibili.com/x/web-interface/dynamic/region?&amp;jsonp=jsonp&amp;ps=10&amp;rid=1")
         .then(response => response.json()) // 解析JSON数据
         .then(data => {
           // 将数据转换为HTML列表
