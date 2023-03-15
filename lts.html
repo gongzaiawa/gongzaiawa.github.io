@@ -1,37 +1,25 @@
-<!DOCTYPE html>
+<!DOCTYPE>
 <html>
-<head>
-	<title>JSON to HTML</title>
-</head>
-<body>
-	<h1>Bilibili动态</h1>
-	<table id="dynamic-table">
-		<thead>
-			<tr>
-				<th>发布时间</th>
-				<th>动态内容</th>
-			</tr>
-		</thead>
-		<tbody></tbody>
-	</table>
-	<script>
-		const apiUrl = "https://api.bilibili.com/x/web-interface/dynamic/region?&jsonp=jsonp&ps=10&rid=1";
+  <head>
+ <meta charset="UTF-8">
+    <title>bilibili动态数据</title>
+ </head>
+  <body>
+    <h1>Bilibili动态数据</h1>
+    <ul id="dynamic-list"></ul>
 
-		fetch(apiUrl)
-			.then => response.json())
-			.then(data => {
-				const dynamicTable = document.getElementById("dynamic-table");
-				const dynamicTableBody = dynamicTable.getElementsByTagName("tbody")[0];
+    <script>
+      const dynamicList = document.getElementById("dynamic-list");
 
-				data.data.archives.forEach(archive => {
-					const = dynamicTableBody.insertRow(-1);
-					const cell1 = row.insertCell(0);
-					const cell2 = row.insertCell(1);
-	cell1.innerHTML = new Date(archive.pubdate * 1000).toLocaleString();
-					cell2.innerHTML = archive.title;
-				});
-			})
-			.catch(error => console.error(error));
-	</script>
-</body>
+      // 发送GET请求获取JSON数据
+      fetch("https://api.bilibili.com/x/web-interface/dynamic/region?&jsonp=jsonp&ps=10&rid=1")
+        .then(response => response.json()) // 解析JSON数据
+        .then(data => {
+          // 将数据转换为HTML列表
+          const items = data.data.archives.map(archive => `<li><a href="${archive.short_link}">${archive.title}</a></li>`);
+          dynamicList.innerHTML = items.join("");
+        })
+        .catch(error => console.error(error));
+    </script>
+ <body>
 </html>
