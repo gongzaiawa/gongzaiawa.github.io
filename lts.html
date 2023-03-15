@@ -1,27 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Accessing Custom API</title>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>API调用示例</title>
 </head>
 <body>
-	<h1>Accessing Custom API</h1>
-	<p>Click the button below to access the API and display the data in a new window.</p>
-	<button onclick="getData()">Get Data</button>
-
+	<h1>API调用示例</h1>
+	<form>
+		<label for="api-url">API URL:</label>
+		<input type="text id="api-url" />
+		<button type="button" onclick="getData()">获取数据</button>
+	</form>
+	<div id="response"></div>
 	<script>
-		function getData			// Replace the URL below with your custom API endpoint
-			let url = "https://your-custom-api-endpoint.com/data";
-
-			fetch(url)
-			.then(response => response.json())
-			.then(data => {
-				// Open a new window and display the data
-				let newWindow = window.open("", "New Window");
-				newWindow.document.write(JSON.stringify(data));
-			})
-			.catch(error => console.log(error));
+		function getData() {
+			const apiUrl = document.getElementById("api-url").value;
+			fetch(apiUrl)
+				.then(response => response.json())
+				.then(data => {
+					const responseDiv = document.getElementById("response");
+					responseDiv.innerHTML = JSON.stringify(data);
+				})
+				.catch(error => console.error(error));
 		}
 	</script>
 </body>
