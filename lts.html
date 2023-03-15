@@ -1,9 +1,9 @@
 <!DOCTYPE>
 <html>
   <head>
- <meta charset="UTF-8">
-    <title>bilibili动态数据</title>
- </head>
+    <meta charset="UTF-8">
+    <title>Bilibili动态数据</title>
+  </head>
   <body>
     <h1>Bilibili动态数据</h1>
     <ul id="dynamic-list"></ul>
@@ -12,7 +12,7 @@
       const dynamicList = document.getElementById("dynamic-list");
 
       // 发送GET请求获取JSON数据
-      fetch("https://cors-anywhere.herokuapp.com/https://api.bilibili.com/x/web-interface/dynamic/region?&amp;jsonp=jsonp&amp;ps=10&amp;rid=1")
+      fetch("https://cors-anywhere.herokuapp.com/https://api.bilibili.com/x/web-interface/dynamic/region?&jsonp=jsonp&ps=10&rid=1")
         .then(response => response.json()) // 解析JSON数据
         .then(data => {
           // 将数据转换为HTML列表
@@ -20,6 +20,20 @@
           dynamicList.innerHTML = items.join("");
         })
         .catch(error => console.error(error));
+
+        function displayData(data){
+          let output = ``;
+          data.data.archives.forEach(function(archive) {
+            output += `
+              <div>
+                <h3>${archive.title}</h3>
+                <p>${archive.dynamic}</p>
+                <a href="${archive.short_link}" target="_blank">查看原文</a>
+              </div>
+            `;
+          });
+          document.getElementById('dynamic-list').innerHTML = output;
+        }
     </script>
- <body>
+  </body>
 </html>
