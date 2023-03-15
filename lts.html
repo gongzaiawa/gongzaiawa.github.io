@@ -14,7 +14,7 @@
       // 发送GET请求获取JSON数据
       async function getDynamicData() {
         try {
-          const response = await fetch("https://cors-anywhere.herokuapp.com/https://api.bilibili.com/x/web-interface/dynamic/region?&jsonp=jsonp&ps=10&rid=1");
+          const response = await fetch("https://api.bilibili.com/x/web-interface/dynamic/region?&jsonp=jsonp&ps=10&rid=1");
           const data = await response.json(); // 解析JSON数据
           // 将数据转换为HTML列表
           const items = data.data.archives.map(archive => `<li><a href="${archive.short_link}">${archive.title}</ali>`);
