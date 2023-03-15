@@ -1,40 +1,28 @@
-<!DOCTYPE html<html>
-
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>API请求示例</title>
+	<title>Accessing Custom API</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-
 <body>
+	<h1>Accessing Custom API</h1>
+	<p>Click the button below to access the API and display the data in a new window.</p>
+	<button onclick="getData()">Get Data</button>
 
-  <div>
-    <label for="api-urlAPI地址：</label>
-    <input type="text" id="https://api.bilibili.com/x/web-interface/index/top/rcmd?version=1&ps=5" />
-    <button onclick="requestData()">请求数据</button>
-  </div>
+	<script>
+		function getData			// Replace the URL below with your custom API endpoint
+			let url = "https://your-custom-api-endpoint.com/data";
 
-  <div>
-    <h2>返回数据：</h2>
-    <pre id="response-data"></pre>
-  </div>
-
-  <script>
-    function requestData() {
-      const apiUrl = document.getElementById('api-url').value;
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const requestUrl = `${proxyUrl}${apiUrl}`;
-
-      fetch(requestUrl)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('response-data').textContent = JSON.stringify(data, null, 2);
-        })
-        .catch(error => {
-          console.error(error);
-        });
-    }
-  </script>
-
+			fetch(url)
+			.then(response => response.json())
+			.then(data => {
+				// Open a new window and display the data
+				let newWindow = window.open("", "New Window");
+				newWindow.document.write(JSON.stringify(data));
+			})
+			.catch(error => console.log(error));
+		}
+	</script>
 </body>
-
 </html>
