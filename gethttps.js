@@ -1,31 +1,39 @@
-(function (ext) {
-
-  function fetchUrl(url) {
-    return fetch(url)
-      .then(response => response.text());
+class HttpExtension {
+  constructor (runtime) {
+    this.runtime = runtime
   }
 
-  ext.getHttps = function (url, callback) {
-    // Use the fetchUrl() function to make the GET request
-    fetchUrl(url)
-      .then(data => callback(data));
-  };
+  getInfo () {
+    return {
+      id: 'http',
+      name: 'HTTP',
+      blocks: [
+        {
+          opcode: 'httpGet',
+          blockType: Scratch.BlockType.REPORTER,
+          text: 'get HTTP data from [URL]',
+          arguments: {
+            URL: {
+              type: Scratch.ArgumentType.STRING,
+              defaultValue: 'https://www.example.com',
+            },
+          },
+          func: 'httpGet',
+        },
+      ],
+    }
+  }
 
-  // Describe the extension metadata
-  ext._getStatus = function () {
-    return {status: 2, msg: 'Ready'};
-  };
-  ext._shutdown = function () {};
+  async httpGet (args) {
+    const url = args.URL
+    try {
+      const response = await fetch(url)
+      const data = await response.text()
+      return data
+    } catch (e) {
+      return ''
+    }
+  }
+}
 
-  // Register the extension
-  const descriptor = {
-    blocks: [
-      ['R', 'fetch URL %s', 'getHttps', 'https://example.com'],
-    ],
-    displayName: 'HTTPS Fetch',
-    menuIconURI: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAQElEQVR42mNkwAL+L/A/0/iFjICuhDxDJdgogZkhP8HAgMDAwMCxSwTAKIDq3//GtHHsQPTCGOpgwoXMjgiiLEBZCE91AvAjtBVkJawMA0DUFC1cLWlgAAAAASUVORK5CYII=',
-    id: 'getHttps'
-  };
-  ScratchExtensions.register('HTTPS Fetch', descriptor, ext);
-
-})({});
+Scratch.extensions.register(new HttpExtension())
