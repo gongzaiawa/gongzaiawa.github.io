@@ -1,43 +1,48 @@
-const GzEmail = {
-  sendEmail: async function(to, subject, message) {
-    const url = `https://v.api.aa1.cn/api/qqemail/new/?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&message=${encodeURIComponent(message)}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
+class EmailExtension {
+  constructor () {
+    this.menuId = 'recipientMenu'
+  }
+
+  getInfo () {
+    return {
+      id: 'email',
+      name: '邮箱验证码',
+      blocks: [
+        {
+          opcode: 'sendEmail',
+          blockType: Scratch.BlockType.COMMAND,
+          text: '发送 邮箱 {recipient} 上的主题为 {subject} 内容为 {body} 的邮件',
+          arguments: {
+            recipient: {
+              type: Scratch.ArgumentType.STRING,
+              defaultValue: 'example@example.com'
+            },
+            subject: {
+              type: Scratch.ArgumentType.STRING,
+              defaultValue: 'TestEmail'
+            },
+            body: {
+              type: Scratch.ArgumentType.STRING,
+              defaultValue: '内容'
+            }
+          }
+        }
+      ],
+      menus: {
+        [this.menuId]: []
+      }
+    }
+  }
+
+  async sendEmail (args) {
+    const baseUrl = 'https://v.api.aa1.cn/api/qqemail/new/?to='
+    const url = `${baseUrl}"${args.recipient}"&subject=${args.subject}&message="${args.body}"`
+    try {
+      await fetch(url)
+    } catch (error) {
+      console.log("Error while sending email:", error)
     }
   }
 }
 
-window.turboWrap.registerExtension('GzEmail', {
-  sendEmail: async function(to, subject, message) {
-    await GzEmail.sendEmail.call(this, to, subject, message);
-  },
-
-  getInfo: function() {
-    return {
-      id: 'gz-email',
-      name: '发送验证码到邮箱',
-      blocks: [
-        {
-          opcode: 'sendEmail',
-          blockType: 'command',
-          text: '发送邮件到[TO]主题[SUBJECT]内容[MESSAGE]',
-          arguments: {
-            TO: {
-              type: 'string',
-              defaultValue: 'example@example.com'
-            },
-            SUBJECT: {
-              type: 'string',
-              defaultValue: 'TestEmail'
-            },
-            MESSAGE: {
-              type: 'string',
-              defaultValue: 'Hello World!'
-            }
-          }
-        }
-      ]
-    }
-  }
-});
+Scratch.extensions.register(new EmailExtension())
