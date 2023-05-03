@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>运行 HTML 代码</title>
+	<script>
+		function run() {
+			var code = document.getElementById("code").value;
+			document.getElementById("preview").innerHTML = code;
+		}
+	</script>
+</head>
+
+<body>
+	<textarea id="code" rows="10" cols="50"></textarea>
+	<button onclick="run()">运行</button>
+	<div id="preview"></div>
+</body>
+
+</html>
