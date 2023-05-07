@@ -11,7 +11,7 @@ class EmailExtension {
         {
           opcode: 'sendEmail',
           blockType: Scratch.BlockType.COMMAND,
-          text: '发送 邮箱 %recipient 上的主题为 %subject 内容为 %body 的邮件',
+          text: '发送 邮箱 [recipient] 上的主题为 [subject] 内容为 [body] 的邮件',
           arguments: {
             recipient: {
               type: Scratch.ArgumentType.STRING,
